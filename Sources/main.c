@@ -17,7 +17,7 @@
 ** @file main.c
 ** @version 01.01
 ** @brief
-**         Main module.
+**         Main module. ADDED FOR TESTING
 **         This module contains user's application code.
 */         
 /*!
