@@ -8,7 +8,7 @@
 **     Repository  : Kinetis
 **     Datasheet   : KL25P80M48SF0RM, Rev.3, Sep 2012
 **     Compiler    : GNU C Compiler
-**     Date/Time   : 2016-12-28, 18:07, # CodeGen: 45
+**     Date/Time   : 2017-02-03, 16:57, # CodeGen: 0
 **     Abstract    :
 **
 **     Settings    :
@@ -277,6 +277,8 @@
 #include "BitIoLdd6.h"
 #include "IN4.h"
 #include "BitIoLdd7.h"
+#include "MCUC1.h"
+#include "XF1.h"
 #include "PE_Types.h"
 #include "PE_Error.h"
 #include "PE_Const.h"
@@ -456,11 +458,13 @@ void PE_low_level_init(void)
                 ));
   /* NVIC_IPR1: PRI_6=0 */
   NVIC_IPR1 &= (uint32_t)~(uint32_t)(NVIC_IP_PRI_6(0xFF));
+  /* ### McuLibConfig "MCUC1" init code ... */
   /* ### KinetisSDK "KSDK1" init code ... */
   /* Write code here ... */
   /* ### CriticalSection "CS1" init code ... */
   /* ### Asynchro serial "AS1" init code ... */
   AS1_Init();
+  /* ### XFormat "XF1" init code ... */
   /* ### Shell "CLS1" init code ... */
   CLS1_Init(); /* initialize shell */
   /* ### BitIO_LDD "BitIoLdd1" component auto initialization. Auto initialization feature can be disabled by component property "Auto initialization". */

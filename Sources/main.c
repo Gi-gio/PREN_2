@@ -64,6 +64,8 @@
 #include "BitIoLdd6.h"
 #include "IN4.h"
 #include "BitIoLdd7.h"
+#include "MCUC1.h"
+#include "XF1.h"
 /* Including shared modules, which are used for whole project */
 #include "PE_Types.h"
 #include "PE_Error.h"

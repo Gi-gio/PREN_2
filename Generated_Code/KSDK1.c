@@ -4,15 +4,15 @@
 **     Project     : PI_Com_Shell
 **     Processor   : MKL25Z128VLK4
 **     Component   : KinetisSDK
-**     Version     : Component 01.005, Driver 01.00, CPU db: 3.00.000
+**     Version     : Component 01.006, Driver 01.00, CPU db: 3.00.000
 **     Repository  : My Components
 **     Compiler    : GNU C Compiler
-**     Date/Time   : 2016-11-17, 18:34, # CodeGen: 1
+**     Date/Time   : 2017-02-03, 16:57, # CodeGen: 0
 **     Abstract    :
 **
 **     Settings    :
 **          Component name                                 : KSDK1
-**          SDK Version                                    : none
+**          SDK Version                                    : Processor Expert
 **     Contents    :
 **         No public methods
 **

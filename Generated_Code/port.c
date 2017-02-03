@@ -75,17 +75,15 @@
 #include "portmacro.h" /* for configCPU_FAMILY */
 #include "task.h"
 #include "portTicks.h" /* for CPU_CORE_CLK_HZ used in configSYSTICK_CLOCK_HZ */
-#ifndef __HIWARE__ /* S08/S12 compiler only supports C89 */
-  #include <stdbool.h>
-#endif
 #if configSYSTICK_USE_LOW_POWER_TIMER
-  #include "LPTMR_PDD.h" /* PDD interface to low power timer */
-  #include "SIM_PDD.h"   /* PDD interface to system integration module */
+  #if MCUC1_CONFIG_NXP_SDK_2_0_USED
+    #include "fsl_lptmr.h" /* SDK low power timer interface */
+  #elif MCUC1_CONFIG_SDK_VERSION_USED == MCUC1_CONFIG_SDK_PROCESSOR_EXPERT
+    #include "LPTMR_PDD.h" /* PDD interface to low power timer */
+    #include "SIM_PDD.h"   /* PDD interface to system integration module */
+  #endif
 #endif
-#include "KSDK1.h" /* include interface to SDK */
-#if KSDK1_SDK_VERSION_USED == KSDK1_SDK_VERSION_NONE
-  #include "Cpu.h"
-#endif
+#include "MCUC1.h" /* include SDK and API used */
 /* --------------------------------------------------- */
 /* Let the user override the pre-loading of the initial LR with the address of
    prvTaskExitError() in case is messes up unwinding of the stack in the
@@ -98,16 +96,26 @@
 /* --------------------------------------------------- */
 /* macros dealing with tick counter */
 #if configSYSTICK_USE_LOW_POWER_TIMER
-  #define ENABLE_TICK_COUNTER()       LPTMR_PDD_EnableDevice(LPTMR0_BASE_PTR, PDD_ENABLE); LPTMR_PDD_EnableInterrupt(LPTMR0_BASE_PTR)
-  #define DISABLE_TICK_COUNTER()      LPTMR_PDD_EnableDevice(LPTMR0_BASE_PTR, PDD_DISABLE); LPTMR_PDD_DisableInterrupt(LPTMR0_BASE_PTR)
-  #define RESET_TICK_COUNTER_VAL()    DISABLE_TICK_COUNTER()  /* CNR is reset when the LPTMR is disabled or counter register overflows */
-  #define ACKNOWLEDGE_TICK_ISR()      LPTMR_PDD_ClearInterruptFlag(LPTMR0_BASE_PTR)
-  #if defined(LDD_ivIndex_INT_LPTimer) /* Earlier version of Processor Expert use this vector name */
-    #define configLOW_POWER_TIMER_VECTOR_NUMBER   LDD_ivIndex_INT_LPTimer
-  #elif defined(LDD_ivIndex_INT_LPTMR0) /* Newer versions (Processor Expert for Kinetis v3.0.1 uses this name */
-    #define configLOW_POWER_TIMER_VECTOR_NUMBER   LDD_ivIndex_INT_LPTMR0
-  #else
-  #error "Unknown Low Power Timer Interrupt Number?"
+  #if MCUC1_CONFIG_NXP_SDK_USED
+    /*! \todo */
+    #define LPTMR0_BASE_PTR             LPTMR0  /* low power timer address base */
+    #define configLOW_POWER_TIMER_VECTOR_NUMBER   LPTMR0_IRQn /* low power timer IRQ number */
+    #define ENABLE_TICK_COUNTER()       LPTMR_StartTimer(LPTMR0_BASE_PTR); LPTMR_EnableInterrupts(LPTMR0_BASE_PTR, kLPTMR_TimerInterruptEnable)
+    #define DISABLE_TICK_COUNTER()      LPTMR_StopTimer(LPTMR0_BASE_PTR)
+    #define RESET_TICK_COUNTER_VAL()    LPTMR_StopTimer(LPTMR0_BASE_PTR); LPTMR_DisableInterrupts(LPTMR0_BASE_PTR, kLPTMR_TimerInterruptEnable)
+    #define ACKNOWLEDGE_TICK_ISR()      LPTMR_ClearStatusFlags(LPTMR0_BASE_PTR, kLPTMR_TimerCompareFlag);
+  #elif MCUC1_CONFIG_SDK_VERSION_USED == MCUC1_CONFIG_SDK_PROCESSOR_EXPERT
+    #define ENABLE_TICK_COUNTER()       LPTMR_PDD_EnableDevice(LPTMR0_BASE_PTR, PDD_ENABLE); LPTMR_PDD_EnableInterrupt(LPTMR0_BASE_PTR)
+    #define DISABLE_TICK_COUNTER()      LPTMR_PDD_EnableDevice(LPTMR0_BASE_PTR, PDD_DISABLE); LPTMR_PDD_DisableInterrupt(LPTMR0_BASE_PTR)
+    #define RESET_TICK_COUNTER_VAL()    DISABLE_TICK_COUNTER()  /* CNR is reset when the LPTMR is disabled or counter register overflows */
+    #define ACKNOWLEDGE_TICK_ISR()      LPTMR_PDD_ClearInterruptFlag(LPTMR0_BASE_PTR)
+    #if defined(LDD_ivIndex_INT_LPTimer) /* Earlier version of Processor Expert use this vector name */
+      #define configLOW_POWER_TIMER_VECTOR_NUMBER   LDD_ivIndex_INT_LPTimer
+    #elif defined(LDD_ivIndex_INT_LPTMR0) /* Newer versions (Processor Expert for Kinetis v3.0.1 uses this name */
+      #define configLOW_POWER_TIMER_VECTOR_NUMBER   LDD_ivIndex_INT_LPTMR0
+    #else
+      #error "Unknown Low Power Timer Interrupt Number?"
+    #endif
   #endif
 #else
   #define ENABLE_TICK_COUNTER()       portNVIC_SYSTICK_CTRL_REG = portNVIC_SYSTICK_CLK_BIT | portNVIC_SYSTICK_INT_BIT | portNVIC_SYSTICK_ENABLE_BIT
@@ -120,9 +128,15 @@ typedef unsigned long TickCounter_t; /* enough for 24 bit Systick */
 #if configSYSTICK_USE_LOW_POWER_TIMER
   #define TICK_NOF_BITS               16
   #define COUNTS_UP                   1 /* LPTMR is counting up */
-  #define SET_TICK_DURATION(val)      LPTMR_PDD_WriteCompareReg(LPTMR0_BASE_PTR, val)
-  #define GET_TICK_DURATION()         LPTMR_PDD_ReadCompareReg(LPTMR0_BASE_PTR)
-  #define GET_TICK_CURRENT_VAL(addr)  *(addr)=LPTMR_PDD_ReadCounterReg(LPTMR0_BASE_PTR)
+  #if MCUC1_CONFIG_NXP_SDK_USED
+    #define SET_TICK_DURATION(val)      LPTMR_SetTimerPeriod(LPTMR0_BASE_PTR, val);
+    #define GET_TICK_DURATION()         LPTMR0_BASE_PTR->CNR /*! \todo SDK has no access method for this */
+    #define GET_TICK_CURRENT_VAL(addr)  *(addr)=LPTMR_GetCurrentTimerCount(LPTMR0_BASE_PTR)
+  #elif MCUC1_CONFIG_SDK_VERSION_USED == MCUC1_CONFIG_SDK_PROCESSOR_EXPERT
+    #define SET_TICK_DURATION(val)      LPTMR_PDD_WriteCompareReg(LPTMR0_BASE_PTR, val)
+    #define GET_TICK_DURATION()         LPTMR_PDD_ReadCompareReg(LPTMR0_BASE_PTR)
+    #define GET_TICK_CURRENT_VAL(addr)  *(addr)=LPTMR_PDD_ReadCounterReg(LPTMR0_BASE_PTR)
+  #endif
 #else
   #define TICK_NOF_BITS               24
   #define COUNTS_UP                   0 /* SysTick is counting down to zero */
@@ -141,9 +155,8 @@ typedef unsigned long TickCounter_t; /* enough for 24 bit Systick */
   unsigned int SEGGER_SYSVIEW_TickCnt; /* tick counter for Segger SystemViewer */
 #endif
 
-#if configUSE_TICKLESS_IDLE == 1
-#define UL_TIMER_COUNTS_FOR_ONE_TICK  ((TickCounter_t)(TIMER_COUNTS_FOR_ONE_TICK))
-
+#if configUSE_TICKLESS_IDLE
+  #define UL_TIMER_COUNTS_FOR_ONE_TICK  ((TickCounter_t)(TIMER_COUNTS_FOR_ONE_TICK))
 #if configCPU_FAMILY_IS_ARM(configCPU_FAMILY)
   #define TICKLESS_DISABLE_INTERRUPTS()  __asm volatile("cpsid i") /* disable interrupts. Note that the wfi (wait for interrupt) instruction later will still be able to wait for interrupts! */
   #define TICKLESS_ENABLE_INTERRUPTS()   __asm volatile("cpsie i") /* re-enable interrupts. */
@@ -158,7 +171,12 @@ typedef unsigned long TickCounter_t; /* enough for 24 bit Systick */
   #if 1
     #if configSYSTICK_USE_LOW_POWER_TIMER
       /* using Low Power Timer */
-      #define TICK_INTERRUPT_HAS_FIRED()   (LPTMR_PDD_GetInterruptFlag(LPTMR0_BASE_PTR)!=0)  /* returns TRUE if tick interrupt had fired */
+      #if MCUC1_CONFIG_NXP_SDK_USED
+        #define LPTMR_CSR_TCF_MASK           0x80u
+        #define TICK_INTERRUPT_HAS_FIRED()   (LPTMR0_BASE_PTR->CSR&LPTMR_CSR_TCF_MASK)!=0/*! \todo */  /* returns TRUE if tick interrupt had fired */
+     #elif MCUC1_CONFIG_SDK_VERSION_USED == MCUC1_CONFIG_SDK_PROCESSOR_EXPERT
+        #define TICK_INTERRUPT_HAS_FIRED()   (LPTMR_PDD_GetInterruptFlag(LPTMR0_BASE_PTR)!=0)  /* returns TRUE if tick interrupt had fired */
+      #endif
       #define TICK_INTERRUPT_FLAG_RESET()  /* not needed */
       #define TICK_INTERRUPT_FLAG_SET()    /* not needed */
     #else
@@ -196,7 +214,7 @@ typedef unsigned long TickCounter_t; /* enough for 24 bit Systick */
 /* Flag indicating that the tick counter interval needs to be restored back to
  * the normal setting. Used when woken up from a low power mode using the LPTMR.
  */
-#if (configUSE_TICKLESS_IDLE == 1) && configSYSTICK_USE_LOW_POWER_TIMER
+#if configUSE_TICKLESS_IDLE && configSYSTICK_USE_LOW_POWER_TIMER
   static uint8_t restoreTickInterval = 0; /* used to flag in tick ISR that compare register needs to be reloaded */
 #endif
 
@@ -241,7 +259,7 @@ typedef unsigned long TickCounter_t; /* enough for 24 bit Systick */
 #define portNVIC_SYSPRI7                    ((volatile unsigned long*)0xe000e41c) /* system handler priority register 7, PRI_28 is LPTMR */
 #define portNVIC_LP_TIMER_PRI               (((unsigned long)configKERNEL_INTERRUPT_PRIORITY)<<0) /* priority of low power timer interrupt */
 
-#if configSYSTICK_USE_LOW_POWER_TIMER
+#if configSYSTICK_USE_LOW_POWER_TIMER && MCUC1_CONFIG_SDK_VERSION_USED == MCUC1_CONFIG_SDK_PROCESSOR_EXPERT
 #define IRQn_Type int
 #define __NVIC_PRIO_BITS          configPRIO_BITS
 #define     __O     volatile             /*!< Defines 'write only' permissions                */
@@ -386,7 +404,19 @@ portSTACK_TYPE *pxPortInitialiseStack(portSTACK_TYPE *pxTopOfStack, pdTASK_CODE 
   *pxTopOfStack = (portSTACK_TYPE)portTASK_RETURN_ADDRESS;  /* LR */
 
   /* Save code space by skipping register initialization. */
+#if 1
   pxTopOfStack -= 5;  /* R12, R3, R2 and R1. */
+#else /* initialize all registers */
+  pxTopOfStack--;
+  *pxTopOfStack = 0x12121212; /* R12 */
+  pxTopOfStack--;
+  *pxTopOfStack = 0x03030303; /* R3 */
+  pxTopOfStack--;
+  *pxTopOfStack = 0x02020202; /* R2 */
+  pxTopOfStack--;
+  *pxTopOfStack = 0x01010101; /* R1 */
+  pxTopOfStack--;
+#endif
   *pxTopOfStack = (portSTACK_TYPE)pvParameters; /* R0 */
 
 #if configCPU_FAMILY_IS_ARM_FPU(configCPU_FAMILY) /* has floating point unit */
@@ -395,7 +425,26 @@ portSTACK_TYPE *pxPortInitialiseStack(portSTACK_TYPE *pxTopOfStack, pdTASK_CODE 
   pxTopOfStack--;
   *pxTopOfStack = portINITIAL_EXEC_RETURN;
 #endif
+#if 1
   pxTopOfStack -= 8;  /* R11, R10, R9, R8, R7, R6, R5 and R4. */
+#else /* initialize all registers */
+  pxTopOfStack--;
+  *pxTopOfStack = 0x11111111; /* R11 */
+  pxTopOfStack--;
+  *pxTopOfStack = 0x10101010; /* R10 */
+  pxTopOfStack--;
+  *pxTopOfStack = 0x99999999; /* R5 */
+  pxTopOfStack--;
+  *pxTopOfStack = 0x88888888; /* R8 */
+  pxTopOfStack--;
+  *pxTopOfStack = 0x0; /* R7 */
+  pxTopOfStack--;
+  *pxTopOfStack = 0x66666666; /* R6 */
+  pxTopOfStack--;
+  *pxTopOfStack = 0x55555555; /* R5 */
+  pxTopOfStack--;
+  *pxTopOfStack = 0x44444444; /* R4 */
+#endif
   return pxTopOfStack;
 }
 
@@ -686,6 +735,7 @@ void vPortInitTickTimer(void) {
 #endif /* configUSE_TICKLESS_IDLE */
 #if configSYSTICK_USE_LOW_POWER_TIMER
   /* SIM_SCGx: enable clock to LPTMR */
+#if MCUC1_CONFIG_SDK_VERSION_USED == MCUC1_CONFIG_SDK_PROCESSOR_EXPERT
   SIM_PDD_SetClockGate(SIM_BASE_PTR, SIM_PDD_CLOCK_GATE_LPTMR0, PDD_ENABLE);
 
   /* LPTRM0_CSR: clear TCF (Timer compare Flag) with writing a one to it */
@@ -700,7 +750,15 @@ void vPortInitTickTimer(void) {
    */
   LPTMR_PDD_SelectPrescalerSource(LPTMR0_BASE_PTR, LPTMR_PDD_SOURCE_LPO1KHZ);
   LPTMR_PDD_EnablePrescalerBypass(LPTMR0_BASE_PTR, LPTMR_PDD_BYPASS_ENABLED);
+#elif MCUC1_CONFIG_NXP_SDK_2_0_USED
+  /*! \todo */
+  {
+    lptmr_config_t config;
 
+    LPTMR_GetDefaultConfig(&config);
+    LPTMR_Init(LPTMR0_BASE_PTR, &config);
+  }
+#endif
   /* set timer interrupt priority in IP[] and enable it in ISER[] */
   NVIC_SetPriority(configLOW_POWER_TIMER_VECTOR_NUMBER, configLIBRARY_LOWEST_INTERRUPT_PRIORITY);
   NVIC_EnableIRQ(configLOW_POWER_TIMER_VECTOR_NUMBER); /* enable IRQ in NVIC_ISER[] */
@@ -930,8 +988,12 @@ portLONG uxGetTickCounterValue(void) {
 }
 /*-----------------------------------------------------------*/
 #if (configCOMPILER==configCOMPILER_ARM_KEIL)
-#if configPEX_KINETIS_SDK /* the SDK expects different interrupt handler names */
-void SysTick_Handler(void) {
+#if MCUC1_CONFIG_NXP_SDK_USED /* the SDK expects different interrupt handler names */
+#if configSYSTICK_USE_LOW_POWER_TIMER
+void LPTMR0_IRQHandler(void) { /* low power timer */
+#else
+void SysTick_Handler(void) { /* normal SysTick */
+#endif
 #else
 void vPortTickHandler(void) {
 #endif
@@ -969,8 +1031,12 @@ void vPortTickHandler(void) {
 #endif
 /*-----------------------------------------------------------*/
 #if (configCOMPILER==configCOMPILER_ARM_GCC)
-#if configPEX_KINETIS_SDK /* the SDK expects different interrupt handler names */
-void SysTick_Handler(void) {
+#if MCUC1_CONFIG_NXP_SDK_USED /* the SDK expects different interrupt handler names */
+#if configSYSTICK_USE_LOW_POWER_TIMER
+void LPTMR0_IRQHandler(void) { /* low power timer */
+#else
+void SysTick_Handler(void) { /* normal SysTick */
+#endif
 #else
 void vPortTickHandler(void) {
 #endif
@@ -1115,7 +1181,7 @@ void vPortStartFirstTask(void) {
 /*-----------------------------------------------------------*/
 #if (configCOMPILER==configCOMPILER_ARM_KEIL)
 #if configCPU_FAMILY_IS_ARM_M4_M7(configCPU_FAMILY) /* Cortex M4/M7 */
-#if configPEX_KINETIS_SDK /* the SDK expects different interrupt handler names */
+#if MCUC1_CONFIG_NXP_SDK_USED /* the SDK expects different interrupt handler names */
 __asm void SVC_Handler(void) {
 #else
 __asm void vPortSVCHandler(void) {
@@ -1144,7 +1210,7 @@ __asm void vPortSVCHandler(void) {
 }
 /*-----------------------------------------------------------*/
 #elif configCPU_FAMILY_IS_ARM_M0(configCPU_FAMILY) /* Cortex M0+ and Keil */
-#if configPEX_KINETIS_SDK /* the SDK expects different interrupt handler names */
+#if MCUC1_CONFIG_NXP_SDK_USED /* the SDK expects different interrupt handler names */
 __asm void SVC_Handler(void) {
 #else
 __asm void vPortSVCHandler(void) {
@@ -1156,7 +1222,7 @@ __asm void vPortSVCHandler(void) {
 #endif
 /*-----------------------------------------------------------*/
 #if (configCOMPILER==configCOMPILER_ARM_GCC)
-#if configPEX_KINETIS_SDK /* the SDK expects different interrupt handler names */
+#if MCUC1_CONFIG_NXP_SDK_USED /* the SDK expects different interrupt handler names */
 __attribute__ ((naked)) void SVC_Handler(void) {
 #else
 __attribute__ ((naked)) void vPortSVCHandler(void) {
@@ -1193,7 +1259,7 @@ __asm volatile (
 /*-----------------------------------------------------------*/
 #if (configCOMPILER==configCOMPILER_ARM_KEIL)
 #if configCPU_FAMILY_IS_ARM_M4_M7(configCPU_FAMILY) /* Cortex M4 or M7 */
-#if configPEX_KINETIS_SDK /* the SDK expects different interrupt handler names */
+#if MCUC1_CONFIG_NXP_SDK_USED /* the SDK expects different interrupt handler names */
 __asm void PendSV_Handler(void) {
 #else
 __asm void vPortPendSVHandler(void) {
@@ -1237,7 +1303,7 @@ __asm void vPortPendSVHandler(void) {
   nop
 }
 #elif configCPU_FAMILY_IS_ARM_M0(configCPU_FAMILY) /* Keil: Cortex M0+ */
-#if configPEX_KINETIS_SDK /* the SDK expects different interrupt handler names */
+#if MCUC1_CONFIG_NXP_SDK_USED /* the SDK expects different interrupt handler names */
 __asm void PendSV_Handler(void) {
 #else
 __asm void vPortPendSVHandler(void) {
@@ -1288,7 +1354,7 @@ __asm void vPortPendSVHandler(void) {
 #if (configCOMPILER==configCOMPILER_ARM_GCC)
 #if configGDB_HELPER
 __attribute__ ((naked)) void vPortPendSVHandler_native(void) {
-#elif configPEX_KINETIS_SDK /* the SDK expects different interrupt handler names */
+#elif MCUC1_CONFIG_NXP_SDK_USED /* the SDK expects different interrupt handler names */
 __attribute__ ((naked)) void PendSV_Handler(void) {
 #else
 __attribute__ ((naked)) void vPortPendSVHandler(void) {
@@ -1415,7 +1481,7 @@ void __attribute__ ((naked)) PendSV_Handler_jumper(void) {
   __asm volatile("b vPortPendSVHandler_native \n");
 }
 
-#if configPEX_KINETIS_SDK /* the SDK expects different interrupt handler names */
+#if MCUC1_CONFIG_NXP_SDK_USED /* the SDK expects different interrupt handler names */
 __attribute__ ((naked)) void PendSV_Handler(void) {
 #else
 __attribute__ ((naked)) void vPortPendSVHandler(void) {

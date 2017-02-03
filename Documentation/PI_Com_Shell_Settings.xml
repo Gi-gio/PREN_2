@@ -115,7 +115,7 @@ PE_DEBUGHALT();
     <Enabled v="Y" />
     <Properties>
       <Component_name v="UTIL1" />
-      <SDK v="KSDK1" />
+      <SDK v="MCUC1" />
     </Properties>
     <Methods>
       <strcpy v="generate code" />
@@ -180,6 +180,8 @@ PE_DEBUGHALT();
       <SetValue16LE v="generate code" />
       <SetValue24LE v="generate code" />
       <SetValue32LE v="generate code" />
+      <Deinit v="generate code" />
+      <Init v="generate code" />
     </Methods>
     <Events>
       <EmptySection_DummyValue />
@@ -189,7 +191,7 @@ PE_DEBUGHALT();
     <Enabled v="Y" />
     <Properties>
       <Component_name v="KSDK1" />
-      <SDK_Version v="none" />
+      <SDK_Version v="Processor Expert" />
     </Properties>
     <Methods>
       <EmptySection_DummyValue />
@@ -216,14 +218,15 @@ PE_DEBUGHALT();
       <Status_Colon_Pos v="13" />
       <Help_Semicolon_Pos v="26" />
       <boolgroup name="Multi Command" v="Disabled" />
-      <Utility v="UTIL1" />
+      <boolgroup name="History" v="no" />
+      <Mutex v="no" />
+      <SDK v="MCUC1" />
       <boolgroup name="Default Serial" v="Enabled">
         <Console_Interface v="AS1" />
       </boolgroup>
-      <Semaphore v="no" />
+      <Utility v="UTIL1" />
+      <XFormat v="XF1" />
       <Critical_Section v="CS1" />
-      <boolgroup name="History" v="no" />
-      <Kinetis_SDK v="KSDK1" />
     </Properties>
     <Methods>
       <PrintPrompt v="generate code" />
@@ -235,6 +238,8 @@ PE_DEBUGHALT();
       <SendNum32s v="generate code" />
       <SendCh v="generate code" />
       <SendStr v="generate code" />
+      <printfIO v="generate code" />
+      <printf v="generate code" />
       <SendData v="generate code" />
       <PrintStatus v="generate code" />
       <ParseCommand v="generate code" />
@@ -267,7 +272,7 @@ PE_DEBUGHALT();
     <Enabled v="Y" />
     <Properties>
       <Component_name v="WAIT1" />
-      <SDK v="KSDK1" />
+      <SDK v="MCUC1" />
       <boolgroup name="Manual Clock Values" v="Disabled" />
       <Delay100usFunction v="Delay100US" />
       <boolgroup name="RTOS" v="Disabled" />
@@ -291,7 +296,7 @@ PE_DEBUGHALT();
     <Enabled v="Y" />
     <Properties>
       <Component_name v="CS1" />
-      <SDK v="KSDK1" />
+      <SDK v="MCUC1" />
       <Use_Processor_Expert_Default v="no" />
       <Use_FreeRTOS v="no" />
     </Properties>
@@ -500,7 +505,7 @@ PE_DEBUGHALT();
     <Enabled v="Y" />
     <Properties>
       <Component_name v="LED_GREEN" />
-      <SDK v="KSDK1" />
+      <SDK v="MCUC1" />
       <Turned_On_with_initialization v="no" />
       <group name="HW Interface">
         <Anode_on_port_side__HIGH_is_ON v="no" />
@@ -593,7 +598,7 @@ PE_DEBUGHALT();
     <Enabled v="Y" />
     <Properties>
       <Component_name v="LED_BLUE" />
-      <SDK v="KSDK1" />
+      <SDK v="MCUC1" />
       <Turned_On_with_initialization v="no" />
       <group name="HW Interface">
         <Anode_on_port_side__HIGH_is_ON v="no" />
@@ -686,7 +691,7 @@ PE_DEBUGHALT();
     <Enabled v="Y" />
     <Properties>
       <Component_name v="LED_RED" />
-      <SDK v="KSDK1" />
+      <SDK v="MCUC1" />
       <Turned_On_with_initialization v="no" />
       <group name="HW Interface">
         <Anode_on_port_side__HIGH_is_ON v="no" />
@@ -780,11 +785,11 @@ PE_DEBUGHALT();
     <Properties>
       <Component_name v="FRTOS1" />
       <RTOS_Version v="V9.0.0" />
-      <Kinetis_SDK v="KSDK1" />
+      <SDK v="MCUC1" />
       <boolgroup name="Kinetis SDK" v="Disabled" />
       <group name="Custom Port">
         <Compiler v="automatic" />
-        <boolgroup name="Static Sources" v="Disabled" />
+        <boolgroup name="Source Folders" v="Disabled" />
         <boolgroup name="Custom portBASE_TYPE" v="Disabled" />
       </group>
       <Classic_CodeWarrior v="no" />
@@ -813,11 +818,13 @@ PE_DEBUGHALT();
         </boolgroup>
         <boolgroup name="non-LDD SWI" v="Disabled" />
         <Preemptive v="yes" />
+        <Optimized_Task_Selection v="no" />
         <Time_Slicing v="yes" />
         <Use_Co_Routines v="no" />
         <Idle_should_yield v="yes" />
         <Task_Name_Length v="12" />
         <Minimal_Stack_Size v="200" />
+        <Record_Stack_High_Address v="yes" />
         <Maximum_Priorities v="6" />
         <Maximum_Coroutine_Priorities v="2" />
         <Stackoverflow_checking_method v="Method 1" />
@@ -911,6 +918,7 @@ PE_DEBUGHALT();
       <xTaskCallApplicationTaskHook v="don&amp;apos;t generate code" />
       <xTaskGetCurrentTaskHandle v="generate code" />
       <xTaskGetIdleTaskHandle v="generate code" />
+      <xTaskGetHandle v="generate code" />
       <pcTaskGetTaskName v="generate code" />
       <eTaskGetState v="don&amp;apos;t generate code" />
       <xTaskGetSchedulerState v="generate code" />
@@ -981,7 +989,6 @@ PE_DEBUGHALT();
       <xTaskNotifyStateClear v="generate code" />
       <vTaskSetThreadLocalStoragePointer v="generate code" />
       <pvTaskGetThreadLocalStoragePointer v="generate code" />
-      <xTaskGetHandle v="generate code" />
       <pcTaskGetName v="generate code" />
       <vTaskGetInfo v="generate code" />
       <ParseCommand v="don&amp;apos;t generate code" />
@@ -1907,6 +1914,37 @@ Autoselect
       <NegVal v="don&amp;apos;t generate code" />
       <ConnectPin v="don&amp;apos;t generate code" />
       <GetRawVal v="don&amp;apos;t generate code" />
+    </Methods>
+    <Events>
+      <EmptySection_DummyValue />
+    </Events>
+  </Bean>
+  <Bean name="MCUC1" type="McuLibConfig">
+    <Enabled v="Y" />
+    <Properties>
+      <Component_name v="MCUC1" />
+      <SDK v="Processor Expert" />
+      <Config_Files_Folder v="" />
+    </Properties>
+    <Methods>
+      <EmptySection_DummyValue />
+    </Methods>
+    <Events>
+      <EmptySection_DummyValue />
+    </Events>
+  </Bean>
+  <Bean name="XF1" type="XFormat">
+    <Enabled v="Y" />
+    <Template v="XFormat" />
+    <Properties>
+      <Component_name v="XF1" />
+      <SDK v="MCUC1" />
+      <Floating_Point v="no" />
+    </Properties>
+    <Methods>
+      <xvformat v="generate code" />
+      <xformat v="generate code" />
+      <xsprintf v="generate code" />
     </Methods>
     <Events>
       <EmptySection_DummyValue />

@@ -67,6 +67,8 @@
 #include "BitIoLdd6.h"
 #include "IN4.h"
 #include "BitIoLdd7.h"
+#include "MCUC1.h"
+#include "XF1.h"
 
 #include "Infrarot.h"
 #include "Accel.h"
